@@ -163,6 +163,26 @@
 
      Kết quả sẽ hiển thị giao diện:
 
+        ![image](https://github.com/user-attachments/assets/d1f32ef3-acfb-446f-953b-4d0bc38f4e88)
+  
+        Thêm mới có thể thêm nhiều email, web, phone giống mô tả
+
+        ![image](https://github.com/user-attachments/assets/d918d605-8ffe-41d2-bb9d-8e683ffd0fb5)
+
+     Để thêm tài khoản ngân hàng( Thủ công):
+
+      + Đầu tiên vào phần Contact thêm 2 trường Ngân hàng và số tài khoản
+      + Vào https://trankhanh.bitrix24.vn/rest/crm.contact.fields?auth=token
+      + Lấy dữ liệu mã hóa 2 trường vừa thêm sẽ là UF_CRM_.....
+      + Gán vào ứng dụng: file .env ở back-end
+        
+         ![image](https://github.com/user-attachments/assets/61b001fd-7d88-46fa-81bc-a5f3c759a28e)
+
+
+     
+
+
+
       
 
      
