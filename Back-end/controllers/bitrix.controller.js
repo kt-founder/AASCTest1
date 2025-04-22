@@ -6,8 +6,8 @@ require("dotenv").config();
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[0-9]{8,15}$/;
 const URL_REGEX = /^https?:\/\/.+$/;
-const UF_BANK_FIELD = "UF_CRM_1745240301139";
-const UF_ACCOUNT_FIELD = "UF_CRM_1745240317905";
+const UF_BANK_FIELD = process.env.UF_BANK_FIELD;
+const UF_ACCOUNT_FIELD = process.env.UF_ACCOUNT_FIELD;
 
 // ========== OAuth ==========
 
