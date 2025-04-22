@@ -1,4 +1,5 @@
-![image](https://github.com/user-attachments/assets/f854bea3-d482-4228-b3ac-d36d5941241b)# Hướng dẫn cài đặt
+# Hướng dẫn cài đặt
+
 1. Cài đặt ngrok
 
    a. Tải và cài đặt ngrok
@@ -143,7 +144,10 @@
 
      Sau khi cài xong và mở ứng dụng -> access token đã được lưu
 
-     Hiện tại đang gặp lỗi grant_type khi dùng refresh token( nếu hết token cần cài đặt lại)
+     Hiện tại đang gặp lỗi grant_type khi dùng refresh token( nếu hết token cần cài đặt lại): Đã làm đúng trên apidocs:
+
+           ![image](https://github.com/user-attachments/assets/5bb9dabf-caf5-4dad-983c-3f4e13b640b0)
+
 
    + Tiếp đó cài đặt Frond-end: Mở terminal chạy lệnh
 
