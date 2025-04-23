@@ -49,6 +49,7 @@ async function callBitrix(method, payload = {}) {
   try {
     const token = await getAccessToken();
     const url = `${process.env.BITRIX_API_DOMAIN}/rest/${method}`;
+    // console.log(payload);
     const res = await axios.get(url, { params: { ...payload, auth: token } });
     return res.data;
   } catch (err) {

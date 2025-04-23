@@ -23,6 +23,7 @@ const ContactManager = () => {
     if (!window.confirm("Bạn có chắc chắn muốn xoá liên hệ này?")) return;
     try {
       await contactApi.delete(id);
+      alert("🗑 Xoá liên hệ thành công!");
       fetchContacts();
     } catch (err) {
       alert("❌ Lỗi khi xoá liên hệ: " + err.message);
@@ -45,16 +46,24 @@ const ContactManager = () => {
       PHONE_ID: contact.PHONE?.[0]?.ID || '',
       WEBSITE: contact.WEB?.[0]?.VALUE || '',
       ADDRESS: contact.ADDRESS || '',
-      BANK_NAME: contact.UF_CRM_1745240301139 || '',
-      BANK_ACCOUNT: contact.UF_CRM_1745240317905 || '',
-      // 👇 Thêm mảng đầy đủ
+      ADDRESS_REGION: contact.ADDRESS_REGION|| '',
+      ADDRESS_CITY: contact.ADDRESS_CITY|| '',
+      ADDRESS_PROVINCE: contact.ADDRESS_PROVINCE|| '',
+      ADDRESS_COUNTRY: contact.ADDRESS_COUNTRY|| '',
+      // Dữ liệu dạng danh sách (gốc)
       EMAIL_LIST: contact.EMAIL || [],
       PHONE_LIST: contact.PHONE || [],
       WEBSITE_LIST: contact.WEB || [],
+  
+      // 👇 Danh sách ngân hàng 
+      BANK_LIST: contact.BANKS|| []
     };
+  
     setEditContact(parsedContact);
+    console.log("Pas",parsedContact)
     setModalOpen(true);
   };
+  
   
 
   const handleModalClose = () => {
@@ -66,8 +75,10 @@ const ContactManager = () => {
     try {
       if (editContact) {
         await contactApi.update(editContact.ID, formData);
+        alert("✏️ Cập nhật liên hệ thành công!");
       } else {
         await contactApi.create(formData);
+        alert("➕ Thêm liên hệ thành công!");
       }
       fetchContacts();
       handleModalClose();
