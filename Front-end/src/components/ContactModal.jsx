@@ -1,6 +1,44 @@
-import React, { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import PropTypes from 'prop-types';
+
+const validationSchema = Yup.object().shape({
+  NAME: Yup.string().required('Vui lòng nhập tên'),
+  LAST_NAME: Yup.string().required('Vui lòng nhập họ'),
+  EMAILS: Yup.array().of(
+    Yup.object().shape({
+      VALUE: Yup.string().email('Email không hợp lệ').required('Vui lòng nhập email'),
+      VALUE_TYPE: Yup.string().required('Vui lòng chọn loại email')
+    })
+  ),
+  PHONES: Yup.array().of(
+    Yup.object().shape({
+      VALUE: Yup.string()
+        .matches(/^[0-9+\-\s()]*$/, 'Số điện thoại không hợp lệ')
+        .min(10, 'Số điện thoại phải có ít nhất 10 chữ số')
+        .required('Vui lòng nhập số điện thoại'),
+      VALUE_TYPE: Yup.string().required('Vui lòng chọn loại số điện thoại')
+    })
+  ),
+  WEBS: Yup.array().of(
+    Yup.object().shape({
+      VALUE: Yup.string().url('URL không hợp lệ').required('Vui lòng nhập URL'),
+      VALUE_TYPE: Yup.string().required('Vui lòng chọn loại website')
+    })
+  ),
+  ADDRESS: Yup.string().required('Vui lòng nhập địa chỉ'),
+  ADDRESS_CITY: Yup.string().required('Vui lòng nhập quận/huyện'),
+  ADDRESS_REGION: Yup.string().required('Vui lòng nhập phường/xã'),
+  ADDRESS_PROVINCE: Yup.string().required('Vui lòng nhập tỉnh/thành phố'),
+  ADDRESS_COUNTRY: Yup.string().required('Vui lòng nhập quốc gia'),
+  BANKS: Yup.array().of(
+    Yup.object().shape({
+      BANK_NAME: Yup.string().required('Vui lòng nhập tên ngân hàng'),
+      BANK_ACCOUNT: Yup.string().required('Vui lòng nhập số tài khoản')
+    })
+  )
+});
 
 const ContactModal = ({
   isOpen = false,
@@ -9,24 +47,54 @@ const ContactModal = ({
   initialData,
   mode,
 }) => {
-  const [form, setForm] = useState({
-    NAME: "",
-    LAST_NAME: "",
-    EMAILS: [],
-    PHONES: [],
-    WEBS: [],
-    ADDRESS: "", // Địa chỉ chi tiết (số nhà, đường...)
-    ADDRESS_CITY: "", // Quận/Huyện
-    ADDRESS_REGION: "", // Phường/Xã
-    ADDRESS_PROVINCE: "", // Tỉnh/Thành phố
-    ADDRESS_COUNTRY: "", // Quốc gia
-    BANKS: [],
+  const formik = useFormik({
+    initialValues: {
+      NAME: "",
+      LAST_NAME: "",
+      EMAILS: [],
+      PHONES: [],
+      WEBS: [],
+      ADDRESS: "",
+      ADDRESS_CITY: "",
+      ADDRESS_REGION: "",
+      ADDRESS_PROVINCE: "",
+      ADDRESS_COUNTRY: "",
+      BANKS: [],
+    },
+    validationSchema,
+    onSubmit: (values) => {
+      const payload = {
+        NAME: values.NAME,
+        LAST_NAME: values.LAST_NAME,
+        ADDRESS: values.ADDRESS,
+        ADDRESS_REGION: values.ADDRESS_REGION,
+        ADDRESS_CITY: values.ADDRESS_CITY,
+        ADDRESS_PROVINCE: values.ADDRESS_PROVINCE,
+        ADDRESS_COUNTRY: values.ADDRESS_COUNTRY,
+        EMAIL: values.EMAILS.map(({ VALUE, VALUE_TYPE, id, DELETE }) => ({
+          ...(id ? { ID: id } : {}),
+          ...(DELETE ? { DELETE } : { VALUE, VALUE_TYPE }),
+        })),
+        PHONE: values.PHONES.map(({ VALUE, VALUE_TYPE, id, DELETE }) => ({
+          ...(id ? { ID: id } : {}),
+          ...(DELETE ? { DELETE } : { VALUE, VALUE_TYPE }),
+        })),
+        WEB: values.WEBS.map(({ VALUE, VALUE_TYPE, id, DELETE }) => ({
+          ...(id ? { ID: id } : {}),
+          ...(DELETE ? { DELETE } : { VALUE, VALUE_TYPE }),
+        })),
+        BANKS: values.BANKS.map(({ BANK_NAME, BANK_ACCOUNT, id, DELETE }) => ({
+          ...(id ? { ID: id } : {}),
+          ...(DELETE ? { DELETE } : { BANK_NAME, BANK_ACCOUNT }),
+        })),
+      };
+      onSubmit(payload);
+    },
   });
 
   useEffect(() => {
     if (isOpen && initialData) {
-      console.log(initialData)
-      setForm({
+      formik.setValues({
         NAME: initialData.NAME || "",
         LAST_NAME: initialData.LAST_NAME || "",
         EMAILS:
@@ -47,153 +115,104 @@ const ContactModal = ({
             VALUE: w.VALUE,
             VALUE_TYPE: w.VALUE_TYPE || "WORK",
           })) || [],
-        ADDRESS: initialData.ADDRESS|| "",
-        ADDRESS_REGION: initialData.ADDRESS_REGION|| "",
-        ADDRESS_CITY: initialData.ADDRESS_CITY|| "",
-        ADDRESS_PROVINCE: initialData.ADDRESS_PROVINCE|| "",
-        ADDRESS_COUNTRY: initialData.ADDRESS_COUNTRY|| "",
+        ADDRESS: initialData.ADDRESS || "",
+        ADDRESS_REGION: initialData.ADDRESS_REGION || "",
+        ADDRESS_CITY: initialData.ADDRESS_CITY || "",
+        ADDRESS_PROVINCE: initialData.ADDRESS_PROVINCE || "",
+        ADDRESS_COUNTRY: initialData.ADDRESS_COUNTRY || "",
         BANKS:
-          initialData.BANK_LIST.map((b) => ({
+          initialData.BANK_LIST?.map((b) => ({
             id: b.BANK_ID,
             BANK_NAME: b.BANK_NAME,
             BANK_ACCOUNT: b.BANK_ACCOUNT,
           })) || [],
-        // 👈
-      });
-    } else {
-      setForm({
-        NAME: "",
-        LAST_NAME: "",
-        EMAILS: [],
-        PHONES: [],
-        WEBS: [],
-        ADDRESS: "",
-        BANKS: [],
       });
     }
   }, [isOpen, initialData]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleArrayChange = (type, id, key, value) => {
-    setForm((prev) => ({
-      ...prev,
-      [type]: prev[type].map((item) =>
-        item.id === id ? { ...item, [key]: value } : item
-      ),
-    }));
-  };
-
   const handleAddField = (type) => {
-    // const newId = generateId();
     const newItem =
       type === "BANKS"
         ? { BANK_NAME: "", BANK_ACCOUNT: "" }
         : { VALUE: "", VALUE_TYPE: "WORK" };
-    setForm((prev) => ({
-      ...prev,
-      [type]: [...prev[type], { VALUE: "", newItem }],
-    }));
+    formik.setFieldValue(type, [...formik.values[type], newItem]);
   };
 
-  const handleRemoveField = (type, id) => {
-    setForm((prev) => ({
-      ...prev,
-      [type]: prev[type].map((item) =>
-        item.id === id ? { ...item, DELETE: "Y" } : item
-      ),
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const payload = {
-      NAME: form.NAME,
-      LAST_NAME: form.LAST_NAME,
-      ADDRESS: form.ADDRESS,
-      ADDRESS_REGION: form.ADDRESS_REGION,
-      ADDRESS_CITY: form.ADDRESS_CITY,
-      ADDRESS_PROVINCE: form.ADDRESS_PROVINCE,
-      ADDRESS_COUNTRY: form.ADDRESS_COUNTRY,
-      EMAIL: form.EMAILS.map(({ VALUE, VALUE_TYPE, id, DELETE }) => ({
-        ...(id ? { ID: id } : {}),
-        ...(DELETE ? { DELETE } : { VALUE, VALUE_TYPE }),
-      })),
-      PHONE: form.PHONES.map(({ VALUE, VALUE_TYPE, id, DELETE }) => ({
-        ...(id ? { ID: id } : {}),
-        ...(DELETE ? { DELETE } : { VALUE, VALUE_TYPE }),
-      })),
-      WEB: form.WEBS.map(({ VALUE, VALUE_TYPE, id, DELETE }) => ({
-        ...(id ? { ID: id } : {}),
-        ...(DELETE ? { DELETE } : { VALUE, VALUE_TYPE }),
-      })),
-      BANKS: form.BANKS.map(({ BANK_NAME, BANK_ACCOUNT, id, DELETE }) => ({
-        ...(id ? { ID: id } : {}),
-        ...(DELETE ? { DELETE } : { BANK_NAME, BANK_ACCOUNT }),
-      })),
-    };
-    onSubmit(payload);
+  const handleRemoveField = (type, index) => {
+    const newArray = [...formik.values[type]];
+    newArray[index] = { ...newArray[index], DELETE: "Y" };
+    formik.setFieldValue(type, newArray);
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded shadow-md w-full max-w-3xl p-6">
+      <div className="bg-white rounded shadow-md w-full max-w-3xl p-6 m-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">
           {mode === "edit" ? "✏️ Cập nhật liên hệ" : "➕ Thêm liên hệ mới"}
         </h2>
 
-        <form
-          onSubmit={handleSubmit}
-          className="grid grid-cols-2 gap-4 text-sm"
-        >
-          <input
-            name="LAST_NAME"
-            value={form.LAST_NAME}
-            onChange={handleChange}
-            placeholder="Họ"
-            className="border p-2"
-          />
-          <input
-            name="NAME"
-            value={form.NAME}
-            onChange={handleChange}
-            placeholder="Tên"
-            className="border p-2"
-          />
+        <form onSubmit={formik.handleSubmit} className="grid grid-cols-2 gap-4 text-sm">
+          <div className="flex flex-col">
+            <label htmlFor="LAST_NAME" className="font-medium mb-1">Họ <span className="text-red-500">*</span></label>
+            <input
+              id="LAST_NAME"
+              name="LAST_NAME"
+              value={formik.values.LAST_NAME}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className={`border p-2 ${formik.touched.LAST_NAME && formik.errors.LAST_NAME ? 'border-red-500' : ''}`}
+            />
+            {formik.touched.LAST_NAME && formik.errors.LAST_NAME && (
+              <div className="text-red-500 text-xs mt-1">{formik.errors.LAST_NAME}</div>
+            )}
+          </div>
+
+          <div className="flex flex-col">
+            <label htmlFor="NAME" className="font-medium mb-1">Tên <span className="text-red-500">*</span></label>
+            <input
+              id="NAME"
+              name="NAME"
+              value={formik.values.NAME}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className={`border p-2 ${formik.touched.NAME && formik.errors.NAME ? 'border-red-500' : ''}`}
+            />
+            {formik.touched.NAME && formik.errors.NAME && (
+              <div className="text-red-500 text-xs mt-1">{formik.errors.NAME}</div>
+            )}
+          </div>
 
           <div className="col-span-2">
-            <label className="font-medium">📧 Email</label>
-            {form.EMAILS.filter((e) => !e.DELETE).map((email) => (
-              <div key={email.id} className="flex gap-2 mt-1">
-                <input
-                  value={email.VALUE}
-                  onChange={(e) =>
-                    handleArrayChange(
-                      "EMAILS",
-                      email.id,
-                      "VALUE",
-                      e.target.value
-                    )
-                  }
-                  placeholder="Email"
-                  className="border p-2 w-full"
-                />
+            <label className="font-medium mb-1">📧 Email <span className="text-red-500">*</span></label>
+            {formik.values.EMAILS.filter((e) => !e.DELETE).map((email, index) => (
+              <div key={email.id || index} className="flex gap-2 mt-1">
+                <div className="flex-1">
+                  <input
+                    value={email.VALUE}
+                    onChange={(e) => {
+                      const newEmails = [...formik.values.EMAILS];
+                      newEmails[index] = { ...newEmails[index], VALUE: e.target.value };
+                      formik.setFieldValue('EMAILS', newEmails);
+                    }}
+                    onBlur={() => formik.setFieldTouched(`EMAILS.${index}.VALUE`, true)}
+                    placeholder="Email"
+                    className={`border p-2 w-full ${formik.touched.EMAILS?.[index]?.VALUE && formik.errors.EMAILS?.[index]?.VALUE ? 'border-red-500' : ''}`}
+                  />
+                  {formik.touched.EMAILS?.[index]?.VALUE && formik.errors.EMAILS?.[index]?.VALUE && (
+                    <div className="text-red-500 text-xs mt-1">{formik.errors.EMAILS[index].VALUE}</div>
+                  )}
+                </div>
                 <select
                   value={email.VALUE_TYPE}
-                  onChange={(e) =>
-                    handleArrayChange(
-                      "EMAILS",
-                      email.id,
-                      "VALUE_TYPE",
-                      e.target.value
-                    )
-                  }
-                  className="border p-2"
+                  onChange={(e) => {
+                    const newEmails = [...formik.values.EMAILS];
+                    newEmails[index] = { ...newEmails[index], VALUE_TYPE: e.target.value };
+                    formik.setFieldValue('EMAILS', newEmails);
+                  }}
+                  onBlur={() => formik.setFieldTouched(`EMAILS.${index}.VALUE_TYPE`, true)}
+                  className={`border p-2 ${formik.touched.EMAILS?.[index]?.VALUE_TYPE && formik.errors.EMAILS?.[index]?.VALUE_TYPE ? 'border-red-500' : ''}`}
                 >
                   <option value="WORK">Công việc</option>
                   <option value="HOME">Cá nhân</option>
@@ -201,7 +220,7 @@ const ContactModal = ({
                 </select>
                 <button
                   type="button"
-                  onClick={() => handleRemoveField("EMAILS", email.id)}
+                  onClick={() => handleRemoveField("EMAILS", index)}
                   className="text-red-500"
                 >
                   ❌
@@ -218,33 +237,34 @@ const ContactModal = ({
           </div>
 
           <div className="col-span-2">
-            <label className="font-medium">📱 Số điện thoại</label>
-            {form.PHONES.filter((p) => !p.DELETE).map((phone) => (
-              <div key={phone.id} className="flex gap-2 mt-1">
-                <input
-                  value={phone.VALUE}
-                  onChange={(e) =>
-                    handleArrayChange(
-                      "PHONES",
-                      phone.id,
-                      "VALUE",
-                      e.target.value
-                    )
-                  }
-                  placeholder="Số điện thoại"
-                  className="border p-2 w-full"
-                />
+            <label className="font-medium mb-1">📱 Số điện thoại <span className="text-red-500">*</span></label>
+            {formik.values.PHONES.filter((p) => !p.DELETE).map((phone, index) => (
+              <div key={phone.id || index} className="flex gap-2 mt-1">
+                <div className="flex-1">
+                  <input
+                    value={phone.VALUE}
+                    onChange={(e) => {
+                      const newPhones = [...formik.values.PHONES];
+                      newPhones[index] = { ...newPhones[index], VALUE: e.target.value };
+                      formik.setFieldValue('PHONES', newPhones);
+                    }}
+                    onBlur={() => formik.setFieldTouched(`PHONES.${index}.VALUE`, true)}
+                    placeholder="Số điện thoại"
+                    className={`border p-2 w-full ${formik.touched.PHONES?.[index]?.VALUE && formik.errors.PHONES?.[index]?.VALUE ? 'border-red-500' : ''}`}
+                  />
+                  {formik.touched.PHONES?.[index]?.VALUE && formik.errors.PHONES?.[index]?.VALUE && (
+                    <div className="text-red-500 text-xs mt-1">{formik.errors.PHONES[index].VALUE}</div>
+                  )}
+                </div>
                 <select
                   value={phone.VALUE_TYPE}
-                  onChange={(e) =>
-                    handleArrayChange(
-                      "PHONES",
-                      phone.id,
-                      "VALUE_TYPE",
-                      e.target.value
-                    )
-                  }
-                  className="border p-2"
+                  onChange={(e) => {
+                    const newPhones = [...formik.values.PHONES];
+                    newPhones[index] = { ...newPhones[index], VALUE_TYPE: e.target.value };
+                    formik.setFieldValue('PHONES', newPhones);
+                  }}
+                  onBlur={() => formik.setFieldTouched(`PHONES.${index}.VALUE_TYPE`, true)}
+                  className={`border p-2 ${formik.touched.PHONES?.[index]?.VALUE_TYPE && formik.errors.PHONES?.[index]?.VALUE_TYPE ? 'border-red-500' : ''}`}
                 >
                   <option value="WORK">Công việc</option>
                   <option value="HOME">Cá nhân</option>
@@ -252,7 +272,7 @@ const ContactModal = ({
                 </select>
                 <button
                   type="button"
-                  onClick={() => handleRemoveField("PHONES", phone.id)}
+                  onClick={() => handleRemoveField("PHONES", index)}
                   className="text-red-500"
                 >
                   ❌
@@ -269,28 +289,34 @@ const ContactModal = ({
           </div>
 
           <div className="col-span-2">
-            <label className="font-medium">🌐 Website</label>
-            {form.WEBS.filter((w) => !w.DELETE).map((web) => (
-              <div key={web.id} className="flex gap-2 mt-1">
-                <input
-                  value={web.VALUE}
-                  onChange={(e) =>
-                    handleArrayChange("WEBS", web.id, "VALUE", e.target.value)
-                  }
-                  placeholder="URL website"
-                  className="border p-2 w-full"
-                />
+            <label className="font-medium mb-1">🌐 Website <span className="text-red-500">*</span></label>
+            {formik.values.WEBS.filter((w) => !w.DELETE).map((web, index) => (
+              <div key={web.id || index} className="flex gap-2 mt-1">
+                <div className="flex-1">
+                  <input
+                    value={web.VALUE}
+                    onChange={(e) => {
+                      const newWebs = [...formik.values.WEBS];
+                      newWebs[index] = { ...newWebs[index], VALUE: e.target.value };
+                      formik.setFieldValue('WEBS', newWebs);
+                    }}
+                    onBlur={() => formik.setFieldTouched(`WEBS.${index}.VALUE`, true)}
+                    placeholder="URL website"
+                    className={`border p-2 w-full ${formik.touched.WEBS?.[index]?.VALUE && formik.errors.WEBS?.[index]?.VALUE ? 'border-red-500' : ''}`}
+                  />
+                  {formik.touched.WEBS?.[index]?.VALUE && formik.errors.WEBS?.[index]?.VALUE && (
+                    <div className="text-red-500 text-xs mt-1">{formik.errors.WEBS[index].VALUE}</div>
+                  )}
+                </div>
                 <select
                   value={web.VALUE_TYPE}
-                  onChange={(e) =>
-                    handleArrayChange(
-                      "WEBS",
-                      web.id,
-                      "VALUE_TYPE",
-                      e.target.value
-                    )
-                  }
-                  className="border p-2"
+                  onChange={(e) => {
+                    const newWebs = [...formik.values.WEBS];
+                    newWebs[index] = { ...newWebs[index], VALUE_TYPE: e.target.value };
+                    formik.setFieldValue('WEBS', newWebs);
+                  }}
+                  onBlur={() => formik.setFieldTouched(`WEBS.${index}.VALUE_TYPE`, true)}
+                  className={`border p-2 ${formik.touched.WEBS?.[index]?.VALUE_TYPE && formik.errors.WEBS?.[index]?.VALUE_TYPE ? 'border-red-500' : ''}`}
                 >
                   <option value="WORK">Công việc</option>
                   <option value="HOME">Cá nhân</option>
@@ -298,7 +324,7 @@ const ContactModal = ({
                 </select>
                 <button
                   type="button"
-                  onClick={() => handleRemoveField("WEBS", web.id)}
+                  onClick={() => handleRemoveField("WEBS", index)}
                   className="text-red-500"
                 >
                   ❌
@@ -313,83 +339,128 @@ const ContactModal = ({
               + Thêm website
             </button>
           </div>
-          <input
-            name="ADDRESS_COUNTRY"
-            value={form.ADDRESS_COUNTRY}
-            onChange={handleChange}
-            placeholder="Quốc gia"
-            className="border p-2"
-          />
-          <input
-            name="ADDRESS_PROVINCE"
-            value={form.ADDRESS_PROVINCE}
-            onChange={handleChange}
-            placeholder="Tỉnh/Thành phố"
-            className="border p-2"
-          />
-          <input
-            name="ADDRESS_CITY"
-            value={form.ADDRESS_CITY}
-            onChange={handleChange}
-            placeholder="Quận/Huyện"
-            className="border p-2"
-          />
-          <input
-            name="ADDRESS_REGION"
-            value={form.ADDRESS_REGION}
-            onChange={handleChange}
-            placeholder="Phường/Xã"
-            className="border p-2"
-          />
 
-          <input
-            name="ADDRESS"
-            value={form.ADDRESS}
-            onChange={handleChange}
-            placeholder="Số nhà, đường (địa chỉ chi tiết)"
-            className="border p-2"
-          />
+          <div className="flex flex-col">
+            <label htmlFor="ADDRESS_COUNTRY" className="font-medium mb-1">Quốc gia <span className="text-red-500">*</span></label>
+            <input
+              id="ADDRESS_COUNTRY"
+              name="ADDRESS_COUNTRY"
+              value={formik.values.ADDRESS_COUNTRY}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className={`border p-2 ${formik.touched.ADDRESS_COUNTRY && formik.errors.ADDRESS_COUNTRY ? 'border-red-500' : ''}`}
+            />
+            {formik.touched.ADDRESS_COUNTRY && formik.errors.ADDRESS_COUNTRY && (
+              <div className="text-red-500 text-xs mt-1">{formik.errors.ADDRESS_COUNTRY}</div>
+            )}
+          </div>
+
+          <div className="flex flex-col">
+            <label htmlFor="ADDRESS_PROVINCE" className="font-medium mb-1">Tỉnh/Thành phố <span className="text-red-500">*</span></label>
+            <input
+              id="ADDRESS_PROVINCE"
+              name="ADDRESS_PROVINCE"
+              value={formik.values.ADDRESS_PROVINCE}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className={`border p-2 ${formik.touched.ADDRESS_PROVINCE && formik.errors.ADDRESS_PROVINCE ? 'border-red-500' : ''}`}
+            />
+            {formik.touched.ADDRESS_PROVINCE && formik.errors.ADDRESS_PROVINCE && (
+              <div className="text-red-500 text-xs mt-1">{formik.errors.ADDRESS_PROVINCE}</div>
+            )}
+          </div>
+
+          <div className="flex flex-col">
+            <label htmlFor="ADDRESS_CITY" className="font-medium mb-1">Quận/Huyện <span className="text-red-500">*</span></label>
+            <input
+              id="ADDRESS_CITY"
+              name="ADDRESS_CITY"
+              value={formik.values.ADDRESS_CITY}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className={`border p-2 ${formik.touched.ADDRESS_CITY && formik.errors.ADDRESS_CITY ? 'border-red-500' : ''}`}
+            />
+            {formik.touched.ADDRESS_CITY && formik.errors.ADDRESS_CITY && (
+              <div className="text-red-500 text-xs mt-1">{formik.errors.ADDRESS_CITY}</div>
+            )}
+          </div>
+
+          <div className="flex flex-col">
+            <label htmlFor="ADDRESS_REGION" className="font-medium mb-1">Phường/Xã <span className="text-red-500">*</span></label>
+            <input
+              id="ADDRESS_REGION"
+              name="ADDRESS_REGION"
+              value={formik.values.ADDRESS_REGION}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className={`border p-2 ${formik.touched.ADDRESS_REGION && formik.errors.ADDRESS_REGION ? 'border-red-500' : ''}`}
+            />
+            {formik.touched.ADDRESS_REGION && formik.errors.ADDRESS_REGION && (
+              <div className="text-red-500 text-xs mt-1">{formik.errors.ADDRESS_REGION}</div>
+            )}
+          </div>
+
+          <div className="col-span-2 flex flex-col">
+            <label htmlFor="ADDRESS" className="font-medium mb-1">Địa chỉ chi tiết <span className="text-red-500">*</span></label>
+            <input
+              id="ADDRESS"
+              name="ADDRESS"
+              value={formik.values.ADDRESS}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              placeholder="Số nhà, đường..."
+              className={`border p-2 ${formik.touched.ADDRESS && formik.errors.ADDRESS ? 'border-red-500' : ''}`}
+            />
+            {formik.touched.ADDRESS && formik.errors.ADDRESS && (
+              <div className="text-red-500 text-xs mt-1">{formik.errors.ADDRESS}</div>
+            )}
+          </div>
 
           <div className="col-span-2">
-            <label className="font-medium">🏦 Ngân hàng</label>
-            {form.BANKS.filter((b) => !b.DELETE).map((bank) => (
-              <div key={bank.id} className="flex gap-2 mt-1">
-                <input
-                  value={bank.BANK_NAME}
-                  onChange={(e) =>
-                    handleArrayChange(
-                      "BANKS",
-                      bank.id,
-                      "BANK_NAME",
-                      e.target.value
-                    )
-                  }
-                  placeholder="Tên ngân hàng"
-                  className="border p-2 w-full"
-                />
-                <input
-                  value={bank.BANK_ACCOUNT}
-                  onChange={(e) =>
-                    handleArrayChange(
-                      "BANKS",
-                      bank.id,
-                      "BANK_ACCOUNT",
-                      e.target.value
-                    )
-                  }
-                  placeholder="Số tài khoản"
-                  className="border p-2 w-full"
-                />
+            <label className="font-medium mb-1">🏦 Ngân hàng</label>
+            {formik.values.BANKS.filter((b) => !b.DELETE).map((bank, index) => (
+              <div key={bank.id || index} className="flex gap-2 mt-1">
+                <div className="flex-1">
+                  <input
+                    value={bank.BANK_NAME}
+                    onChange={(e) => {
+                      const newBanks = [...formik.values.BANKS];
+                      newBanks[index] = { ...newBanks[index], BANK_NAME: e.target.value };
+                      formik.setFieldValue('BANKS', newBanks);
+                    }}
+                    onBlur={() => formik.setFieldTouched(`BANKS.${index}.BANK_NAME`, true)}
+                    placeholder="Tên ngân hàng"
+                    className={`border p-2 w-full ${formik.touched.BANKS?.[index]?.BANK_NAME && formik.errors.BANKS?.[index]?.BANK_NAME ? 'border-red-500' : ''}`}
+                  />
+                  {formik.touched.BANKS?.[index]?.BANK_NAME && formik.errors.BANKS?.[index]?.BANK_NAME && (
+                    <div className="text-red-500 text-xs mt-1">{formik.errors.BANKS[index].BANK_NAME}</div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <input
+                    value={bank.BANK_ACCOUNT}
+                    onChange={(e) => {
+                      const newBanks = [...formik.values.BANKS];
+                      newBanks[index] = { ...newBanks[index], BANK_ACCOUNT: e.target.value };
+                      formik.setFieldValue('BANKS', newBanks);
+                    }}
+                    onBlur={() => formik.setFieldTouched(`BANKS.${index}.BANK_ACCOUNT`, true)}
+                    placeholder="Số tài khoản"
+                    className={`border p-2 w-full ${formik.touched.BANKS?.[index]?.BANK_ACCOUNT && formik.errors.BANKS?.[index]?.BANK_ACCOUNT ? 'border-red-500' : ''}`}
+                  />
+                  {formik.touched.BANKS?.[index]?.BANK_ACCOUNT && formik.errors.BANKS?.[index]?.BANK_ACCOUNT && (
+                    <div className="text-red-500 text-xs mt-1">{formik.errors.BANKS[index].BANK_ACCOUNT}</div>
+                  )}
+                </div>
                 <button
                   type="button"
-                  onClick={() => handleRemoveField("BANKS", bank.id)}
+                  onClick={() => handleRemoveField("BANKS", index)}
                   className="text-red-500"
                 >
                   ❌
                 </button>
               </div>
             ))}
-
             <button
               type="button"
               onClick={() => handleAddField("BANKS")}
@@ -418,6 +489,42 @@ const ContactModal = ({
       </div>
     </div>
   );
+};
+
+ContactModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  initialData: PropTypes.shape({
+    NAME: PropTypes.string,
+    LAST_NAME: PropTypes.string,
+    EMAIL_LIST: PropTypes.arrayOf(PropTypes.shape({
+      ID: PropTypes.string,
+      VALUE: PropTypes.string,
+      VALUE_TYPE: PropTypes.string
+    })),
+    PHONE_LIST: PropTypes.arrayOf(PropTypes.shape({
+      ID: PropTypes.string,
+      VALUE: PropTypes.string,
+      VALUE_TYPE: PropTypes.string
+    })),
+    WEBSITE_LIST: PropTypes.arrayOf(PropTypes.shape({
+      ID: PropTypes.string,
+      VALUE: PropTypes.string,
+      VALUE_TYPE: PropTypes.string
+    })),
+    ADDRESS: PropTypes.string,
+    ADDRESS_REGION: PropTypes.string,
+    ADDRESS_CITY: PropTypes.string,
+    ADDRESS_PROVINCE: PropTypes.string,
+    ADDRESS_COUNTRY: PropTypes.string,
+    BANK_LIST: PropTypes.arrayOf(PropTypes.shape({
+      BANK_ID: PropTypes.string,
+      BANK_NAME: PropTypes.string,
+      BANK_ACCOUNT: PropTypes.string
+    }))
+  }),
+  mode: PropTypes.oneOf(['edit', 'create'])
 };
 
 export default ContactModal;

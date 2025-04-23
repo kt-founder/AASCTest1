@@ -11,9 +11,10 @@ const ContactManager = () => {
   const fetchContacts = async () => {
     try {
       const res = await contactApi.getAll();
-      setContacts(res.data);
+      setContacts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Lỗi khi lấy danh sách:', err);
+      setContacts([]);
     } finally {
       setLoading(false);
     }
@@ -40,31 +41,19 @@ const ContactManager = () => {
       ID: contact.ID,
       NAME: contact.NAME,
       LAST_NAME: contact.LAST_NAME,
-      EMAIL: contact.EMAIL?.[0]?.VALUE || '',
-      EMAIL_ID: contact.EMAIL?.[0]?.ID || '',
-      PHONE: contact.PHONE?.[0]?.VALUE || '',
-      PHONE_ID: contact.PHONE?.[0]?.ID || '',
-      WEBSITE: contact.WEB?.[0]?.VALUE || '',
-      ADDRESS: contact.ADDRESS || '',
-      ADDRESS_REGION: contact.ADDRESS_REGION|| '',
-      ADDRESS_CITY: contact.ADDRESS_CITY|| '',
-      ADDRESS_PROVINCE: contact.ADDRESS_PROVINCE|| '',
-      ADDRESS_COUNTRY: contact.ADDRESS_COUNTRY|| '',
-      // Dữ liệu dạng danh sách (gốc)
       EMAIL_LIST: contact.EMAIL || [],
       PHONE_LIST: contact.PHONE || [],
       WEBSITE_LIST: contact.WEB || [],
-  
-      // 👇 Danh sách ngân hàng 
-      BANK_LIST: contact.BANKS|| []
+      ADDRESS: contact.ADDRESS || '',
+      ADDRESS_REGION: contact.ADDRESS_REGION || '',
+      ADDRESS_CITY: contact.ADDRESS_CITY || '',
+      ADDRESS_PROVINCE: contact.ADDRESS_PROVINCE || '',
+      ADDRESS_COUNTRY: contact.ADDRESS_COUNTRY || '',
+      BANK_LIST: contact.BANKS || []
     };
-  
     setEditContact(parsedContact);
-    console.log("Pas",parsedContact)
     setModalOpen(true);
   };
-  
-  
 
   const handleModalClose = () => {
     setModalOpen(false);
@@ -73,7 +62,7 @@ const ContactManager = () => {
 
   const handleModalSubmit = async (formData) => {
     try {
-      if (editContact) {
+      if (editContact?.ID) {
         await contactApi.update(editContact.ID, formData);
         alert("✏️ Cập nhật liên hệ thành công!");
       } else {
@@ -106,6 +95,8 @@ const ContactManager = () => {
 
       {loading ? (
         <p>Đang tải...</p>
+      ) : contacts.length === 0 ? (
+        <p className="text-center py-4 text-gray-500">Không có liên hệ nào</p>
       ) : (
         <table className="w-full border text-sm">
           <thead className="bg-gray-100">
